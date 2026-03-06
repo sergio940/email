@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TempMail Real - Funcional</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+            --error: #ef4444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        header h1 { margin: 0; font-size: 1.5rem; }
+        header p { margin: 5px 0 0; opacity: 0.9; font-size: 0.9rem; }
+
+        .email-box {
+            padding: 30px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .email-label {
+            display: block;
+            color: var(--text-light);
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .email-display {
+            background: #f9fafb;
+            border: 2px dashed var(--primary);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 1.2rem;
+            color: var(--text-main);
+            margin-bottom: 20px;
+            word-break: break-all;
+            min-height: 24px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button {
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-copy { background-color: var(--primary); color: white; }
+        .btn-copy:hover { background-color: var(--primary-hover); }
+        .btn-refresh { background-color: white; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-refresh:hover { background-color: #f9fafb; }
+
+        .inbox { flex-grow: 1; padding: 20px; }
+        .inbox-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .inbox-title { font-size: 1.1rem; font-weight: 700; }
+        
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid var(--primary);
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .email-list { list-style: none; padding: 0; margin: 0; }
+        
+        .email-item {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .email-item:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .email-sender { font-weight: 700; color: var(--text-main); margin-bottom: 4px; }
+        .email-subject { color: var(--text-light); font-size: 0.95rem; }
+        .email-date { font-size: 0.8rem; color: #9ca3af; text-align: right; margin-top: 5px;}
+
+        .empty-state { text-align: center; padding: 40px 0; color: var(--text-light); }
+        .error-msg { color: var(--error); font-size: 0.9rem; margin-top: 10px; display: none; }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+        }
+        .close-modal:hover { color: #000; }
+        .modal-body { margin-top: 20px; line-height: 1.6; }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #10b981;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>TempMail Real</h1>
+            <p>Conectado a 1secmail.net API</p>
+        </header>
+
+        <div class="email-box">
+            <span class="email-label">Tu dirección temporal:</span>
+            <div class="email-display" id="emailAddress">Generando...</div>
+            <div class="error-msg" id="errorMsg"></div>
+            
+            <div class="actions">
+                <button class="btn-copy" onclick="copyEmail()">Copiar</button>
+                <button class="btn-refresh" onclick="initEmail()">Nuevo Email</button>
+            </div>
+        </div>
+
+        <div class="inbox">
+            <div class="inbox-header">
+                <span class="inbox-title">Bandeja de entrada</span>
+                <div class="loader" id="loader"></div>
+            </div>
+
+            <ul class="email-list" id="emailList">
+                <li class="empty-state">
+                    <p>Esperando correos...</p>
+                    <small>Actualizando cada 5 segundos</small>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Modal para leer email -->
+    <div id="emailModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <h2 id="modalSubject">Asunto</h2>
+            <p><strong>De:</strong> <span id="modalSender"></span></p>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">¡Email copiado!</div>
+
+    <script>
+        // Usamos .net que suele ser más estable para APIs
+        const API_URL = "https://www.1secmail.net/api/v1/";
+        let currentLogin = "";
+        let currentDomain = "";
+        let refreshInterval;
+
+        // 1. Inicializar Email
+        async function initEmail() {
+            const loader = document.getElementById('loader');
+            const emailDisplay = document.getElementById('emailAddress');
+            const errorMsg = document.getElementById('errorMsg');
+            
+            loader.style.display = 'block';
+            emailDisplay.style.opacity = '0.5';
+            errorMsg.style.display = 'none';
+            
+            try {
+                // Petición a la API
+                const response = await fetch(`${API_URL}?action=genRandomMailbox&count=1`);
+                
+                if (!response.ok) throw new Error("Respuesta de red no fue ok");
+                
+                const data = await response.json();
+                
+                if (data.length === 0) throw new Error("No se pudo generar email");
+
+                const fullEmail = data[0];
+                const parts = fullEmail.split('@');
+                currentLogin = parts[0];
+                currentDomain = parts[1];
+
+                emailDisplay.textContent = fullEmail;
+                document.getElementById('emailList').innerHTML = `
+                    <li class="empty-state">
+                        <p>Esperando correos...</p>
+                        <small>Actualizando cada 5 segundos</small>
+                    </li>
+                `;
+                
+                // Reiniciar ciclo
+                clearInterval(refreshInterval);
+                checkInbox(); 
+                refreshInterval = setInterval(checkInbox, 5000); 
+
+            } catch (error) {
+                console.error("Error detallado:", error);
+                emailDisplay.textContent = "Error de conexión";
+                errorMsg.textContent = "No se pudo conectar con la API. Revisa tu internet o la consola (F12).";
+                errorMsg.style.display = 'block';
+            } finally {
+                loader.style.display = 'none';
+                emailDisplay.style.opacity = '1';
+            }
+        }
+
+        // 2. Chequear Bandeja
+        async function checkInbox() {
+            if (!currentLogin) return;
+
+            try {
+                const response = await fetch(`${API_URL}?action=getMessages&login=${currentLogin}&domain=${currentDomain}`);
+                const messages = await response.json();
+
+                const list = document.getElementById('emailList');
+                
+                if (messages.length === 0) {
+                    if(list.querySelector('.empty-state')) return; 
+                    return;
+                }
+
+                list.innerHTML = '';
+                messages.reverse().forEach(msg => {
+                    const li = document.createElement('li');
+                    li.className = 'email-item';
+                    li.innerHTML = `
+                        <div class="email-sender">${msg.from}</div>
+                        <div class="email-subject">${msg.subject}</div>
+                        <div class="email-date">${msg.date}</div>
+                    `;
+                    li.onclick = () => openEmail(msg.id);
+                    list.appendChild(li);
+                });
+
+            } catch (error) {
+                console.error("Error leyendo bandeja:", error);
+            }
+        }
+
+        // 3. Leer Email
+        async function openEmail(id) {
+            const modal = document.getElementById('emailModal');
+            const modalBody = document.getElementById('modalBody');
+            
+            modal.style.display = 'flex';
+            modalBody.innerHTML = '<p>Cargando contenido...</p>';
+
+            try {
+                const response = await fetch(`${API_URL}?action=readMessage&login=${currentLogin}&domain=${currentDomain}&id=${id}`);
+                const data = await response.json();
+
+                document.getElementById('modalSubject').textContent = data.subject;
+                document.getElementById('modalSender').textContent = data.from;
+                
+                // Mostrar HTML o Texto
+                modalBody.innerHTML = data.htmlBody || data.body;
+
+            } catch (error) {
+                modalBody.innerHTML = '<p>Error al cargar el mensaje.</p>';
+            }
+        }
+
+        // Utilidades
+        function copyEmail() {
+            const email = document.getElementById('emailAddress').textContent;
+            if(email && email !== 'Generando...' && email !== 'Error de conexión') {
+                navigator.clipboard.writeText(email);
+                const toast = document.getElementById('toast');
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2000);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('emailModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('emailModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        // Iniciar
+        initEmail();
+    </script>
+</body>
+</html>
